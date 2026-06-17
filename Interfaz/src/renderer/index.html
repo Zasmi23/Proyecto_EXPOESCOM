@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitor Serial APP_BATA</title>
+  <link rel="stylesheet" href="style/style.css">
+  <link rel="stylesheet" href="style/esquema.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <h2>Configuración Serial</h2>
+    <select id="portSelect"><option value="">Selecciona un puerto...</option></select>
+    <select id="baudSelect">
+      <option value="9600">9600 baud</option>
+      <option value="115200" selected>115200 baud</option>
+    </select>
+    <button id="btnRefresh">Actualizar Puertos</button>
+    <button id="btnConnect">Conectar</button>
+    <button id="btnDisconnect" disabled>Desconectar</button>
+    <span id="status">Estado: Desconectado</span>
+
+    <button id="btnEasterEgg" style="margin-top: 15px; background-color: #27ae60; color: white;">Ver Planta</button>
+    <div id="easterEggPanel" class="panel" style="display: none; position: relative; height: 350px; overflow: hidden; background: #87CEEB; transition: background 1s;">
+        <button id="btnCerrarPlanta" style="position: absolute; top: 10px; left: 10px; padding: 5px 10px; background: #ff4757; width: auto;">X</button>
+        
+        <div id="sol" style="position: absolute; width: 60px; height: 60px; background: #FFD700; border-radius: 50%; top: 20px; right: 20px; transition: all 1s ease; box-shadow: 0 0 30px #FFD700;"></div>
+        
+        <div style="position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); text-align: center;">
+            
+            <div id="fuegoPlanta" style="display: none; font-size: 50px; position: absolute; top: -40px; left: 50%; transform: translateX(-50%); z-index: 10;">🔥</div>
+            
+            <img src="../img/R.png" alt="Planta" style="width: 80px; height: auto; position: relative; z-index: 5; margin-bottom: -15px;">
+            
+            <div id="tierraMaceta" style="width: 120px; height: 50px; background-color: #8D6E63; border-radius: 10px 10px 0 0; transition: background-color 0.5s; position: relative; z-index: 6;"></div>
+        </div>
+    </div>
+    
+    <div class="panel console-panel" style="margin-top: 20px; flex-grow: 1;">
+      <h2>Lecturas Crudas</h2>
+      <div id="output" class="terminal-container"></div>
+    </div>
+  </aside>
+
+  <div class="content-wrapper">
+    <header class="main-header">
+      <h1>Panel de Sensores - APP_BATA</h1>
+    </header>
+    
+    <main class="main-content">
+      
+      <section class="top-panels dashboard-grid">
+        <div class="panel medidor-card">
+          <div class="card-header">
+            <h3>MEDIDOR: Temperatura (LM335)</h3>
+          </div>
+          <div class="valor-display">
+            <span id="valTemp">0.0</span> <span class="unidad">°C</span>
+          </div>
+        </div>
+
+        <div class="panel detector-card">
+          <div class="card-header">
+            <h3>DETECTOR: Humedad (Electrodos)</h3>
+          </div>
+          <div class="detector-display">
+            <div class="led" id="ledElectrodo"></div>
+            <span id="statusElectrodo">Seco</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel foco-panel">
+        <h2>Registro de Iluminación (LDR)</h2>
+
+        <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #111; border-radius: 8px; border: 1px solid #333;">
+          <h3 style="color: #777; font-size: 14px; margin-bottom: 10px; text-transform: uppercase;">Elemento Identificado</h3>
+          <span id="lblElemento" style="font-size: 38px; font-weight: bold; color: #feca57; text-shadow: 0 0 10px rgba(254, 202, 87, 0.3); text-transform: uppercase; letter-spacing: 2px;">Evaluando...</span>
+        </div>
+
+        <div class="foco-container">
+          <div class="foco-medidor">
+            <span class="valor-luz" id="valLuzPct">0%</span>
+            <span class="lbl-luz">Nivel de Luz Actual</span>
+          </div>
+        <div class="foco-controles">
+            <label for="focoInput">Foco N°:</label>
+            <input type="number" id="focoInput" min="1" value="1">
+            <button id="btnGuardarLuz" class="btn-action">Guardar Medición</button>
+            
+            <hr style="border-color: #333; margin: 10px 0; width: 100%;">
+            <label for="selectBorrar">Borrar Registro:</label>
+            <select id="selectBorrar">
+              <option value="">Selecciona...</option>
+            </select>
+            <button id="btnBorrarRegistro" class="btn-action" style="background-color: #ff4757; color: #fff; box-shadow: none; margin-top: 5px;">Borrar Seleccionado</button>
+          </div>
+          <div class="foco-lista">
+            <h3>Registros:</h3>
+            <ul id="listaFocos"></ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel schematic-panel">
+        <h2>Diagrama de Acondicionamiento de Señal</h2>
+        <div class="esquema-wrapper">
+          
+          <div class="rutas-container">
+            <!-- Ruta Luz -->
+            <div class="ruta">
+              <div class="bloque">LDR</div>
+              <span class="etiqueta" id="lblLdrRes">-- Ω</span>
+              <div class="bloque">555</div>
+              <span class="etiqueta" id="lblLdrFreq">-- Hz</span>
+              <div class="bloque">LM331</div>
+              <span class="etiqueta" id="lblLdrV1">-- V</span>
+              <div class="bloque">CAS</div>
+              <span class="etiqueta" id="lblLdrV2">-- V</span>
+            </div>
+            
+            <div class="ruta">
+              <div class="bloque">LM335</div>
+              <span class="etiqueta" id="lblTempV1">-- V</span>
+              <div class="bloque">CAS</div>
+              <span class="etiqueta" id="lblTempV2">-- V</span>
+            </div>
+
+            <div class="ruta">
+              <div class="bloque">Electrodos</div>
+              <span class="etiqueta" id="lblElecV1">-- V</span>
+              <div class="bloque">CAS</div>
+              <span class="etiqueta" id="lblElecV2">-- V</span>
+            </div>
+          </div>
+
+          <div class="nodo-final-container">
+            <div class="bloque final" id="nodoMicro">Tarjeta de Adquisición</div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="js/Lecturas.js"></script>
+  <script src="js/nodos.js"></script>
+  <script src="js/frontend.js"></script>
+</body>
+</html>
